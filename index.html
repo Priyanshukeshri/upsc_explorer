@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>UPSC World Map Explorer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link 
+    rel="stylesheet" 
+    href="https://unpkg.com/leaflet/dist/leaflet.css" 
+  />
+  <style>
+     body {
+      font-family: "Segoe UI", sans-serif;
+      margin: 20px;
+      background-color: #f9fafb;
+      color: #333;
+    }
+
+    h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    input,
+    button {
+      padding: 10px 15px;
+      font-size: 16px;
+      margin: 10px 5px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    button {
+      background-color: #1e40af;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background-color: #1d4ed8;
+    }
+
+    #map {
+      height: 500px;
+      width: 100%;
+      margin: 20px auto;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .tabs {
+      display: flex;
+      overflow-x: auto;
+      gap: 8px;
+      padding: 10px 0;
+      border-bottom: 2px solid #ccc;
+      margin-bottom: 1rem;
+    }
+
+    .tab {
+      flex-shrink: 0;
+      padding: 8px 16px;
+      background-color: #e0e7ff;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .tab:hover {
+      background-color: #c7d2fe;
+    }
+
+    .tab.active {
+      background-color: #4338ca;
+      color: white;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .content-box {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      line-height: 1.7;
+      font-size: 16px;
+      margin-bottom: 30px;
+    }
+
+    .content-box h3 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: #1e3a8a;
+    }
+
+    .content-box ul {
+      padding-left: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    .content-box li {
+      margin-bottom: 0.6rem;
+    }
+
+    .content-box strong {
+      color: #1e3a8a;
+    }
+
+    @media (max-width: 768px) {
+      input,
+      button {
+        width: 100%;
+        margin: 5px 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2>🌏 UPSC Explorer</h2>
+  <input type="text" id="locationInput" placeholder="Enter location e.g. Jharkhand" />
+  <button onclick="searchLocation()">Search</button>
+
+  <div id="map"></div>
+
+  <div id="tabs" class="tabs"></div>
+  <div id="tabContents"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const API_KEY = "API_KEY"; // Replace with your Gemini API Key
+    const map = L.map('map').setView([20.5937, 78.9629], 5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let marker;
+
+    async function searchLocation() {
+      const location = document.getElementById("locationInput").value;
+      if (!location) return alert("Enter a location!");
+
+      const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${location}&format=json`);
+      const geoData = await geoRes.json();
+      if (!geoData.length) return alert("Location not found!");
+
+      const { lat, lon } = geoData[0];
+      map.setView([lat, lon], 7);
+      if (marker) map.removeLayer(marker);
+      marker = L.marker([lat, lon]).addTo(map).bindPopup(location).openPopup();
+
+      fetchUPSCData(location);
+    }
+
+    async function fetchUPSCData(location) {
+      const topics = [
+        { key: "History", prompt: `Give a UPSC-relevant historical background of ${location} in bullet points. Including dates and steps , everything` },
+        { key: "Geography", prompt: `Describe the geography of ${location} from a UPSC perspective. Including dates and steps , everything` },
+        { key: "Polity", prompt: `What are the key political/governance features of ${location} for UPSC?  Including dates and steps , everything` },
+        { key: "Environment", prompt: `Describe the environmental significance/issues in ${location} for UPSC.  Including dates and steps , everything` },
+        { key: "Science", prompt: `Mention any science & tech developments or institutes in ${location} for UPSC. Including dates and steps , everything` },
+        { key: "Security", prompt: `Highlight the security-related aspects of ${location} relevant to UPSC.  Including dates and steps , everything` },
+        { key: "Agriculture", prompt: `What is the agricultural importance of ${location} in a UPSC-relevant way?  Including dates and steps , everything` },
+        { key: "Economy", prompt: `Describe the economic profile and industries of ${location} for UPSC preparation.  Including dates and steps , everything` },
+      ];
+
+      document.getElementById("tabs").innerHTML = "Loading...";
+      document.getElementById("tabContents").innerHTML = "";
+
+      const responses = await Promise.all(topics.map(t => queryGemini(t.prompt)));
+
+      const tabsContainer = document.getElementById("tabs");
+      const tabContentsContainer = document.getElementById("tabContents");
+
+      tabsContainer.innerHTML = "";
+      tabContentsContainer.innerHTML = "";
+
+      topics.forEach((topic, index) => {
+        const tab = document.createElement("div");
+        tab.className = "tab" + (index === 0 ? " active" : "");
+        tab.textContent = topic.key;
+        tab.dataset.index = index;
+        tabsContainer.appendChild(tab);
+
+        const tabContent = document.createElement("div");
+        tabContent.className = "tab-content" + (index === 0 ? " active" : "");
+
+        const formatted = formatResponse(responses[index]);
+
+        tabContent.innerHTML = `
+          <div class="content-box">
+            <h3>${topic.key}</h3>
+            ${formatted}
+          </div>
+        `;
+        tabContentsContainer.appendChild(tabContent);
+
+        tab.addEventListener("click", () => {
+          document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+          document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+          tab.classList.add("active");
+          tabContent.classList.add("active");
+        });
+      });
+    }
+
+    function formatResponse(text) {
+      if (!text) return "<p>⚠️ No data available.</p>";
+
+      // Convert markdown-like to proper HTML
+      const html = text
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")     // **bold**
+        .replace(/^\s*\*\s+(.*)/gm, "<li>$1</li>")             // * bullets
+        .replace(/\n\n+/g, "</p><p>")                          // Paragraphs
+        .replace(/\n/g, "<br>");                               // Line breaks
+
+      return `<p>${html}</p>`.replace(/<p><li>/g, "<ul><li>").replace(/<\/li><\/p>/g, "</li></ul>");
+    }
+
+    async function queryGemini(prompt) {
+      try {
+        const res = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + API_KEY,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }]
+            })
+          }
+        );
+        const data = await res.json();
+        return data?.candidates?.[0]?.content?.parts?.[0]?.text || "⚠️ No response received.";
+      } catch (error) {
+        console.error("Error querying Gemini:", error);
+        return "⚠️ API Error.";
+      }
+    }
+  </script>
+</body>
+</html>
