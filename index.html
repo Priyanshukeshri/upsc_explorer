@@ -3,17 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <title>UPSC World Map Explorer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link 
-    rel="stylesheet" 
-    href="https://unpkg.com/leaflet/dist/leaflet.css" 
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-     body {
+    body {
       font-family: "Segoe UI", sans-serif;
-      margin: 20px;
+      margin: 0;
+      padding: 0;
       background-color: #f9fafb;
       color: #333;
+    }
+
+    main {
+      padding: 20px;
+      max-width: 1100px;
+      margin: auto;
     }
 
     h2 {
@@ -22,13 +26,22 @@
       margin-bottom: 1rem;
     }
 
+    .search-container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
     input,
     button {
       padding: 10px 15px;
       font-size: 16px;
-      margin: 10px 5px;
       border: 1px solid #ccc;
       border-radius: 8px;
+      flex: 1;
+      min-width: 200px;
     }
 
     button {
@@ -57,6 +70,12 @@
       padding: 10px 0;
       border-bottom: 2px solid #ccc;
       margin-bottom: 1rem;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .tabs::-webkit-scrollbar {
+      display: none;
     }
 
     .tab {
@@ -67,10 +86,15 @@
       cursor: pointer;
       font-weight: 500;
       transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
     }
 
     .tab:hover {
       background-color: #c7d2fe;
+      transform: scale(1.05);
     }
 
     .tab.active {
@@ -102,6 +126,10 @@
       color: #1e3a8a;
     }
 
+    .content-box h3::before {
+      content: "\1F7E3 ";
+    }
+
     .content-box ul {
       padding-left: 1.5rem;
       margin-top: 1rem;
@@ -119,24 +147,31 @@
       input,
       button {
         width: 100%;
-        margin: 5px 0;
+      }
+
+      #map {
+        height: 300px;
       }
     }
   </style>
 </head>
 <body>
-  <h2>🌏 UPSC Explorer</h2>
-  <input type="text" id="locationInput" placeholder="Enter location e.g. Jharkhand" />
-  <button onclick="searchLocation()">Search</button>
+  <main>
+    <h2>🌏 UPSC Explorer</h2>
+    <div class="search-container">
+      <input type="text" id="locationInput" placeholder="Enter location e.g. Jharkhand" />
+      <button onclick="searchLocation()">Search</button>
+    </div>
 
-  <div id="map"></div>
+    <div id="map"></div>
 
-  <div id="tabs" class="tabs"></div>
-  <div id="tabContents"></div>
+    <div id="tabs" class="tabs"></div>
+    <div id="tabContents"></div>
+  </main>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    const API_KEY = "api-key"; // Replace with your Gemini API Key
+    const API_KEY = "AIzaSyA-WsM4ELXMv3JQIdJ9cETa9nEQzkn2cQc";
     const map = L.map('map').setView([20.5937, 78.9629], 5);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -163,14 +198,14 @@
 
     async function fetchUPSCData(location) {
       const topics = [
-        { key: "History", prompt: `Give a UPSC-relevant historical background of ${location} in bullet points. Including dates and steps , everything` },
-        { key: "Geography", prompt: `Describe the geography of ${location} from a UPSC perspective. Including dates and steps , everything` },
-        { key: "Polity", prompt: `What are the key political/governance features of ${location} for UPSC?  Including dates and steps , everything` },
-        { key: "Environment", prompt: `Describe the environmental significance/issues in ${location} for UPSC.  Including dates and steps , everything` },
-        { key: "Science", prompt: `Mention any science & tech developments or institutes in ${location} for UPSC. Including dates and steps , everything` },
-        { key: "Security", prompt: `Highlight the security-related aspects of ${location} relevant to UPSC.  Including dates and steps , everything` },
-        { key: "Agriculture", prompt: `What is the agricultural importance of ${location} in a UPSC-relevant way?  Including dates and steps , everything` },
-        { key: "Economy", prompt: `Describe the economic profile and industries of ${location} for UPSC preparation.  Including dates and steps , everything` },
+        { key: "📜 History", prompt: `Explain the historical evolution of ${location}, focusing on tribal movements, colonial impact, post-independence developments, and key social reforms. Include UPSC-style bullet points, relevant dates, personalities, and causes-consequences.` },
+        { key: "🌍 Geography", prompt: `Describe the geographical features of ${location}: physical landscape, rivers, climate, vegetation, mineral wealth, and seismic/eco zones. Link with human geography and urban/rural distribution.` },
+        { key: "🏛️ Polity", prompt: `Analyze the political-administrative structure of ${location} from a UPSC perspective. Cover statehood issues, tribal autonomy, constitutional articles (like 5th Schedule), PRIs, and governance challenges.` },
+        { key: "🌱 Environment", prompt: `Explain the ecological profile of ${location}: forests, wildlife sanctuaries, climate change issues, environmental movements (e.g., mining protests), and government schemes.` },
+        { key: "🧪 Science", prompt: `Highlight science & tech developments in ${location}, including institutes (e.g., ISRO, CSIR labs), renewable energy, and local innovations. Provide UPSC-relevant content.` },
+        { key: "🛡️ Security", prompt: `Discuss internal security issues in ${location}, including Naxalism, border policing (if applicable), cybercrime, and community policing efforts.` },
+        { key: "🌾 Agriculture", prompt: `Explain the agricultural profile of ${location}: major crops, agri-climate zones, irrigation types, agro-forestry, tribal farming, and MSP-related issues.` },
+        { key: "💼 Economy", prompt: `Describe the economic structure of ${location}: industries, mining, state GDP, tribal economy, infrastructure, and public finance.` }
       ];
 
       document.getElementById("tabs").innerHTML = "Loading...";
@@ -202,6 +237,17 @@
             ${formatted}
           </div>
         `;
+
+        generateUPSCQuestions(location, topic.key).then(qna => {
+          const qBox = document.createElement("div");
+          qBox.className = "content-box";
+          qBox.innerHTML = `
+            <h3>📝 Practice Questions (${topic.key})</h3>
+            ${qna}
+          `;
+          tabContent.appendChild(qBox);
+        });
+
         tabContentsContainer.appendChild(tabContent);
 
         tab.addEventListener("click", () => {
@@ -216,14 +262,19 @@
     function formatResponse(text) {
       if (!text) return "<p>⚠️ No data available.</p>";
 
-      // Convert markdown-like to proper HTML
       const html = text
-        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")     // **bold**
-        .replace(/^\s*\*\s+(.*)/gm, "<li>$1</li>")             // * bullets
-        .replace(/\n\n+/g, "</p><p>")                          // Paragraphs
-        .replace(/\n/g, "<br>");                               // Line breaks
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+        .replace(/^\s*\*\s+(.*)/gm, "<li>$1</li>")
+        .replace(/\n\n+/g, "</p><p>")
+        .replace(/\n/g, "<br>");
 
       return `<p>${html}</p>`.replace(/<p><li>/g, "<ul><li>").replace(/<\/li><\/p>/g, "</li></ul>");
+    }
+
+    async function generateUPSCQuestions(location, topic) {
+      const prompt = `Generate 10 Prelims MCQs and 1 Mains question with bullet-pointed hints from a UPSC perspective on ${topic} in ${location}. Follow official UPSC tone.`;
+      const response = await queryGemini(prompt);
+      return formatResponse(response);
     }
 
     async function queryGemini(prompt) {
@@ -233,9 +284,7 @@
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }]
-            })
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
           }
         );
         const data = await res.json();
